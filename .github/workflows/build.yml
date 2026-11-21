@@ -20,19 +20,22 @@ jobs:
         run: |
           ZIP=$(find . -type f -name "ZAIN_STORE_Android_Project_Supabase_Connected.zip" | head -n 1)
           if [ -z "$ZIP" ]; then
-            echo "ZIP file not found"
+            echo "ZIP not found"
             exit 1
           fi
           mkdir -p project
           unzip -o "$ZIP" -d project
 
-      - name: Check Android SDK
+      - name: Locate Android project
         run: |
-          echo "Android SDK location:"
-          echo "$ANDROID_HOME"
-          ls -la "$ANDROID_HOME"
-          echo "SDK platforms:"
-          ls -la "$ANDROID_HOME/platforms"
+          ANDROID_DIR=$(find project -type f -path "*/android/app/build.gradle" | head -n 1)
+          if [ -z "$ANDROID_DIR" ]; then
+            echo "Android build.gradle not found"
+            find project -maxdepth 6 -type f
+            exit 1
+          fi
+          echo "ANDROID_PROJECT_DIR=$(dirname "$(dirname "$ANDROID_DIR")")" >> "$GITHUB_ENV"
+          echo "Found Android project: $ANDROID_DIR"
 
       - name: Setup Java 17
         uses: actions/setup-java@v4
@@ -45,12 +48,12 @@ jobs:
 
       - name: Build APK
         run: |
-          cd project/ZAIN_STORE_Android_Project/android
+          cd "$ANDROID_PROJECT_DIR"
           gradle assembleDebug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: ZAIN-STORE-APK
-          path: project/ZAIN_STORE_Android_Project/android/app/build/outputs/apk/debug/app-debug.apk
+          path: ${{ env.ANDROID_PROJECT_DIR }}/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
