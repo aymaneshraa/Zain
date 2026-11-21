@@ -1,0 +1,58 @@
+
+name: Deploy ZAIN STORE Admin
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'ZAIN_STORE_Android_Project_Supabase_Connected.zip'
+      - '.github/workflows/deploy.yml'
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Extract project
+        run: |
+          ZIP=$(find . -type f -name "ZAIN_STORE_Android_Project_Supabase_Connected.zip" | head -n 1)
+          test -n "$ZIP" || { echo "ZIP not found"; exit 1; }
+          mkdir extracted
+          unzip -q "$ZIP" -d extracted
+
+      - name: Prepare website
+        run: |
+          ADMIN_FILE=$(find extracted -type f -path "*/web/admin/index.html" | head -n 1)
+          test -n "$ADMIN_FILE" || { echo "Admin page not found"; exit 1; }
+          WEB_DIR=$(dirname "$(dirname "$ADMIN_FILE")")
+          mkdir public
+          cp -R "$WEB_DIR"/. public/
+          echo '<!doctype html><html lang="ar"><meta charset="utf-8"><meta http-equiv="refresh" content="0;url=./admin/"><title>ZAIN STORE</title><a href="./admin/">فتح لوحة التحكم</a></html>' > public/index.html
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload website
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: public
+
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v4
+￼Enter
