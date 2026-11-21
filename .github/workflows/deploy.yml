@@ -38,6 +38,12 @@ jobs:
           mkdir extracted
           unzip -q "$ZIP" -d extracted
 
+          - name: Show extracted files
+       
+          run: |
+          echo "=== ZIP CONTENTS ==="
+          find extracted -maxdepth 7 -type f
+
       - name: Prepare website
         run: |
           ADMIN_FILE=$(find extracted -type f -path "*/web/admin/index.html" | head -n 1)
