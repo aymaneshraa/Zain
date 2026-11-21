@@ -20,6 +20,7 @@ concurrency:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -32,29 +33,40 @@ jobs:
         run: |
           ZIP=$(find . -type f -name "ZAIN_STORE_Android_Project_Supabase_Connected.zip" | head -n 1)
           if [ -z "$ZIP" ]; then
-            echo "ZIP not found"
+            echo "ERROR: ZIP not found"
             exit 1
           fi
           mkdir extracted
-          unzip -q "$ZIP" -d extracted
+          unzip -o "$ZIP" -d extracted
 
-          - name: Show extracted files
-       
-          run: |
-          echo "=== ZIP CONTENTS ==="
-          find extracted -maxdepth 7 -type f
+      - name: Show extracted files
+        run: |
+          echo "=== EXTRACTED FILES ==="
+          find extracted -maxdepth 8 -type f
 
       - name: Prepare website
         run: |
           ADMIN_FILE=$(find extracted -type f -path "*/web/admin/index.html" | head -n 1)
+
           if [ -z "$ADMIN_FILE" ]; then
-            echo "Admin page not found"
+            echo "ERROR: Admin page not found"
             exit 1
           fi
+
           WEB_DIR=$(dirname "$(dirname "$ADMIN_FILE")")
+
+          echo "Admin file: $ADMIN_FILE"
+          echo "Web directory: $WEB_DIR"
+
           mkdir public
           cp -R "$WEB_DIR"/. public/
-          echo '<!doctype html><html lang="ar"><meta charset="utf-8"><meta http-equiv="refresh" content="0;url=./admin/"><title>ZAIN STORE</title><a href="./admin/">فتح لوحة التحكم</a></html>' > public/index.html
+
+          if [ ! -f public/index.html ]; then
+            echo '<!doctype html><html lang="ar"><meta charset="utf-8"><meta http-equiv="refresh" content="0;url=./admin/"><title>ZAIN STORE</title><a href="./admin/">فتح لوحة التحكم</a></html>' > public/index.html
+          fi
+
+          echo "=== PUBLISHED FILES ==="
+          find public -maxdepth 4 -type f
 
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
